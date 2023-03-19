@@ -1,0 +1,17 @@
+import sqlite3
+
+# Connect to database
+conn = sqlite3.connect('switches.db')
+c = conn.cursor()
+
+# Create table
+c.execute('''CREATE TABLE switches
+             (name text, port text, model text)''')
+
+# Insert data
+c.execute("INSERT INTO switches VALUES ('switch1', 'port1', 'model1')")
+c.execute("INSERT INTO switches VALUES ('switch2', 'port2', 'model2')")
+
+# Save changes and close connection
+conn.commit()
+conn.close()
