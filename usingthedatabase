@@ -1,0 +1,23 @@
+import sqlite3
+
+# Connect to database
+conn = sqlite3.connect('switches.db')
+c = conn.cursor()
+
+# Define phone model to search for
+model_to_search = 'model1'
+
+# Search for matching records
+c.execute("SELECT name, port FROM switches WHERE model=?", (model_to_search,))
+results = c.fetchall()
+
+# Print matching records
+if len(results) > 0:
+    print(f"Switches with {model_to_search} phones connected:")
+    for result in results:
+        print(f"- {result[0]} on port {result[1]}")
+else:
+    print(f"No switches found with {model_to_search} phones connected.")
+
+# Close connection
+conn.close()
