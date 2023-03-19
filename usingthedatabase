@@ -5,7 +5,7 @@ conn = sqlite3.connect('switches.db')
 c = conn.cursor()
 
 # Define phone model to search for
-model_to_search = 'model1'
+model_to_search = '8845'
 
 # Search for matching records
 c.execute("SELECT name, port FROM switches WHERE model=?", (model_to_search,))
