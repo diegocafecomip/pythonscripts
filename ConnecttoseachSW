@@ -1,0 +1,25 @@
+from netmiko import ConnectHandler
+
+# Define device information
+device = {
+    'device_type': 'cisco_ios',
+    'ip': '192.168.0.1',
+    'username': 'your_username',
+    'password': 'your_password',
+    'secret': 'your_enable_password'
+}
+
+# Connect to device
+with ConnectHandler(**device) as ssh:
+    # Enter enable mode
+    ssh.enable()
+
+    # Send command to get CDP neighbor information
+    output = ssh.send_command('show cdp neighbors detail')
+
+    # Process output and extract information
+    # (you'll need to modify this part to extract the specific information you need)
+    print(output)
+
+    # Disconnect from device
+    ssh.disconnect()
