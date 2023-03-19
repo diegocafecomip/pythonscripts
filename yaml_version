@@ -1,0 +1,60 @@
+- name: Collect CDP neighbor information and store in database
+  hosts: switches
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    db_file: switches.db
+    model_to_search: 'model1'
+
+  tasks:
+    - name: Collect CDP neighbor information
+      ios_command:
+        commands:
+          - show cdp neighbors detail
+      register: cdp_output
+
+    - name: Parse CDP neighbor information and store in database
+      python:
+        script: |
+          import re
+          import sqlite3
+
+          # Define database file
+          db_file = "{{ db_file }}"
+
+          # Connect to database
+          conn = sqlite3.connect(db_file)
+          c = conn.cursor()
+
+          # Create switches table if it doesn't exist
+          c.execute('''CREATE TABLE IF NOT EXISTS switches
+                       (name text, port text, model text)''')
+
+          # Parse CDP output and insert data into database
+          for line in "{{ cdp_output.stdout[0] }}".splitlines():
+              if 'Device ID: ' in line:
+                  switch_name = re.search(r'Device ID: (\S+)', line).group(1)
+              elif 'Interface: ' in line:
+                  port = re.search(r'Interface: (\S+)', line).group(1)
+              elif 'Platform: ' in line:
+                  phone_model = re.search(r'Platform: (\S+)', line).group(1)
+                  c.execute("INSERT INTO switches VALUES (?, ?, ?)",
+                            (switch_name, port, phone_model))
+
+          # Save changes and close connection
+          conn.commit()
+          conn.close()
+
+    - name: Search database for phone model
+      sql:
+        db: "{{ db_file }}"
+        query: "SELECT name, port FROM switches WHERE model = ?"
+        params:
+          - "{{ model_to_search }}"
+      register: search_results
+
+    - name: Print search results
+      debug:
+        msg: "Switches with {{ model_to_search }} phones connected: {{ search_results.rows }}"
+      when: search_results.rows | length > 0
